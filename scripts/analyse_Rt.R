@@ -2,9 +2,13 @@ analyse_Rt <- function(incidence, start_date, end_date, window_width, mean_si, s
   incidence_subset <- incidence |> filter(Date >= start_date & Date <= end_date)
   n_obs <- nrow(incidence_subset) # How many observations
 
+  # How many widths of the estimation windows we look into the past to estimate 
+  # the overdispersion parameter
+  n_blocks <- 3
+  
   # Calculate the starting and end points of the time windows
-  t_starts <- 2:(n_obs - window_width + 1)
-  t_ends <- t_starts + window_width - 1
+  t_starts <- 2:(n_obs - window_width * n_blocks + 1)
+  t_ends <- t_starts + window_width * n_blocks - 1
   # Discretization taken from EpiEstim
   si_distr <- discr_si(seq(0, nrow(incidence) - 1), mean_si, std_si)
   # Compute lambda
@@ -25,31 +29,36 @@ analyse_Rt <- function(incidence, start_date, end_date, window_width, mean_si, s
   model_mats <- sapply(
     t_starts,
     function(x) {
-      pairs[0:(window_width - 1) + x, ]
+      pairs[0:(window_width * n_blocks - 1) + x, ]
     },
     simplify = FALSE
   ) %>%
-    lapply(as.data.frame)
-
+    lapply(
+      function (x) {
+        as.data.frame(x) |>
+          mutate(block_id = factor(rep(1:n_blocks, each = window_width)))
+      }
+    )
+  
   for (k in 1:length(t_starts)) {
     # Poisson model
     models_pois[[k]] <- glm(
       data = model_mats[[k]],
-      Cases ~ lambda - 1,
+      Cases ~ lambda * block_id - block_id - lambda - 1,
       family = poisson(link = "identity")
     )
 
     # Quasipoisson model
     models_qpois[[k]] <- glm(
       data = model_mats[[k]],
-      Cases ~ lambda - 1,
+      Cases ~ lambda * block_id - block_id - lambda - 1,
       family = quasipoisson(link = "identity")
     )
 
     # NegBin-Q model
     models_nbin_Q[[k]] <- gamlss(
       data = model_mats[[k]],
-      formula = Cases ~ lambda - 1,
+      Cases ~ lambda * block_id - block_id - lambda - 1,
       family = NBI(mu.link = "identity", sigma.link = "log"),
       control = gamlss.control(trace = FALSE)
     )
@@ -57,7 +66,7 @@ analyse_Rt <- function(incidence, start_date, end_date, window_width, mean_si, s
     # NegBin-L model
     models_nbin_L[[k]] <- gamlss(
       data = model_mats[[k]],
-      formula = Cases ~ lambda - 1,
+      Cases ~ lambda * block_id - block_id - lambda - 1,
       family = NBII(mu.link = "identity", sigma.link = "log"),
       control = gamlss.control(trace = FALSE)
     )
@@ -66,20 +75,21 @@ analyse_Rt <- function(incidence, start_date, end_date, window_width, mean_si, s
   # Extract the coefficient
   R_hat <- list()
   R_hat$pois <- models_pois %>%
-    lapply(coefficients) %>%
+    lapply(function (x) {coefficients(x)["lambda:block_id3"]}) %>%
     unlist()
   R_hat$qpois <- models_qpois %>%
-    lapply(coefficients) %>%
+    lapply(function (x) {coefficients(x)["lambda:block_id3"]}) %>%
     unlist()
   R_hat$nbin_Q <- models_nbin_Q %>%
-    lapply(coefficients) %>%
+    lapply(function (x) {coefficients(x)["lambda:block_id3"]}) %>%
     unlist()
   R_hat$nbin_L <- models_nbin_L %>%
-    lapply(coefficients) %>%
+    lapply(function (x) {coefficients(x)["lambda:block_id3"]}) %>%
     unlist()
   # NegBin-Q model, estimates based on the approximate formulas
   R_hat$nbin_Q_approx <- model_mats |> 
-    lapply(function (x) {sum(x$Cases / x$lambda) / window_width}) |> unlist()
+    lapply(function (x) {sum(tail(x$Cases, window_width) / tail(x$lambda, window_width)) / window_width}) |> 
+    unlist()
 
   # Extract the dispersion parameter estimates
   disp <- list()
@@ -106,30 +116,32 @@ analyse_Rt <- function(incidence, start_date, end_date, window_width, mean_si, s
     FUN = function (j) {
       num <- (model_mats[[j]]$Cases - R_hat$nbin_Q_approx[j] * model_mats[[j]]$lambda)^2
       denom <- (R_hat$nbin_Q_approx[j] * model_mats[[j]]$lambda)^2
-      sum(num / denom) / (window_width - 1)
+      sum(num / denom) / (window_width * n_blocks - 1)
     }
   )
+  
+
   
   # Extract the standard error
   R_hat_sd <- list()
   R_hat_sd$pois <- models_pois %>%
     lapply(summary) %>%
-    lapply(function(x) x$coefficients[2]) %>%
+    lapply(function(x) x$coefficients["lambda:block_id3", "Std. Error"]) %>%
     unlist()
   R_hat_sd$qpois <- models_qpois %>%
     lapply(summary) %>%
-    lapply(function(x) x$coefficients[2]) %>%
+    lapply(function(x) x$coefficients["lambda:block_id3", "Std. Error"]) %>%
     unlist()
   R_hat_sd$nbin_Q <- models_nbin_Q %>%
     lapply(summary) %>%
-    lapply(function(x) x[3]) %>%
+    lapply(function(x) x["lambda:block_id3", "Std. Error"]) %>%
     unlist()
   R_hat_sd$nbin_L <- models_nbin_L %>%
     lapply(summary) %>%
-    lapply(function(x) x[3]) %>%
+    lapply(function(x) x["lambda:block_id3", "Std. Error"]) %>%
     unlist()
   R_hat_sd$nbin_Q_approx <- sqrt(R_hat$nbin_Q_approx^2 * disp$nbin_Q_approx / window_width)
-
+  
   # Get the AIC values
   AIC_vals <- list()
   AIC_vals$pois <- models_pois %>%

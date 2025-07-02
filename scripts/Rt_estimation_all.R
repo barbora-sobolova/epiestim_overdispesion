@@ -191,8 +191,8 @@ annotations$ebola <- plot_annotation(
 
 # Compose the plots
 p_legend <- wrap_elements(ggpubr::get_legend(results$flu$plt$p_nbin_L_vs_nbin_Q))
-composite_plot_elements <- vector("list", 3)
-names(composite_plot_elements) <- names(params)
+composite_plot_elements <- overdisp_plot_elements <- vector("list", 3)
+names(composite_plot_elements) <- names(overdisp_plot_elements) <- names(params)
 for (disease in names(composite_plot_elements)) {
   composite_plot_elements[[disease]] <- (
     with(
@@ -200,6 +200,17 @@ for (disease in names(composite_plot_elements)) {
       p_incidence / p_pois_vs_qpois / p_nbin_L_vs_nbin_Q
     ) +
       plot_layout(heights = c(1, 1, 1), guides = "collect") &
+      theme(legend.position = "none") & 
+      annotations[[disease]]
+  ) |>
+    wrap_elements()
+  
+  overdisp_plot_elements[[disease]] <- (
+    with(
+      results[[disease]]$plt,
+      p_incidence / p_disp
+    ) +
+      plot_layout(heights = c(1, 1), guides = "collect") &
       theme(legend.position = "none") & 
       annotations[[disease]]
   ) |>
@@ -213,7 +224,15 @@ composite_plot <- (
   )
 ) +
   plot_layout(widths = c(3, 3, 3, 1))
-ggsave("figure/composite_plot.pdf", composite_plot, width = 14, height = 11)
+ggsave("figure/composite_plot_overdisp_longer.pdf", composite_plot, width = 14, height = 11)
+
+overdisp_plot <- (
+  with(
+    overdisp_plot_elements, 
+    flu | covid | ebola | p_legend
+  )
+)
+ggsave("figure/overdisp_longer_plot.pdf", overdisp_plot, width = 14, height = 6.5)
 
 # Supplementary plots --------------------------------------------------
 
