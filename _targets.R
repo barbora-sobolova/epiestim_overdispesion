@@ -266,7 +266,7 @@ list(
       {
         # Create the coverage plot for a subset of scenarios. We will use only
         # NegBin-L and NegBin-Q versions.
-        # CURRENTLY, THIS PLOT NEEDS ADJUSTMENS REGARDING THE TEXT SIZES.
+        # CURRENTLY, THIS PLOT NEEDS ADJUSTMENTS REGARDING THE TEXT SIZES.
         # NEEDS TO BE RESOLVED BEFORE GENERATING THE PLOTS FOR THE POSTER.
         generate_poster_figure <- distribution == "NegBin-Q" ||
           (distribution == "NegBin-L" && weekday_effect == "weekday_no")
