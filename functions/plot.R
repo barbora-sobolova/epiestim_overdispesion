@@ -519,9 +519,10 @@ compose_coverage_patches <- function(
     # theme() will override the labels as default "x" and "y"
     labs(x = "", y = "") +
     theme_void() +
-    map(plot_panels, "trajectories")
+    map(plot_panels, "trajectories") +
+    plot_layout(heights = c(1, rep(6, n_rows)), axes = "collect")
   p_meta <- plot_spacer() +
-    map(plot_panels, "meta")
+    map(plot_panels, "meta") +
     plot_layout(heights = c(1, rep(6, n_rows)))
 
   # Compose the right panel corresponding to the empirical vs. nominal coverage
@@ -532,10 +533,6 @@ compose_coverage_patches <- function(
   ) +
     theme(axis.title = element_text(size = 16))
 
-  # Adjust the layout of the vertical strips
-  p_trajectories <- p_trajectories +
-    plot_layout(heights = c(1, rep(6, n_rows)), axes = "collect")
-  p_meta <- p_meta + plot_layout(heights = c(1, rep(6, n_rows)))
   # Collect the guides
   p_coverage <- p_coverage +
     plot_layout(
