@@ -1,3 +1,15 @@
+#' Returns the theme of the composite plot legend
+#' 
+#' @description This macro defines the font sizes used in the legend of the
+#'   composite plots.
+#' @return a ggplot theme
+get_legend_theme <- function() {
+  theme(
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14)
+  )
+}
+
 #' Returns the x-axis limits for the R estimate distribution plot
 #'
 #' @description This function returns the x-axis limits for the plot of R
@@ -114,8 +126,7 @@ plot_dens <- function(
         y = "density"
       ) +
       # A couple of values might get clipped.
-      coord_cartesian(xlim = limits_x$R_hat) +
-      theme(legend.text = element_text(size = 10))
+      coord_cartesian(xlim = limits_x$R_hat)
 
     # Plot the standard errors of the R_eff estimates
     p_se_hat[[k]] <- ggplot(df_R_hat_split[[k]], aes(x = se, color = model)) +
@@ -140,8 +151,7 @@ plot_dens <- function(
         y = "density"
       ) +
       # A couple of values might get clipped.
-      coord_cartesian(xlim = limits_x$se_hat) +
-      theme(legend.text = element_text(size = 10))
+      coord_cartesian(xlim = limits_x$se_hat)
   }
 
   # Plot the point estimates of the overdispersion parameter. We use 2 facets
@@ -238,8 +248,7 @@ plot_dens <- function(
         y = "density"
       ) +
       # A couple of values might get clipped.
-      coord_cartesian(xlim = limits_x$overdisp_hat) +
-      theme(legend.text = element_text(size = 10))
+      coord_cartesian(xlim = limits_x$overdisp_hat)
   }
 
   # Return the list
@@ -405,7 +414,7 @@ plot_trajectories <- function(X, short_window, n_init) {
     ggpubr::geom_bracket(
       xmin = n_init + 1,
       xmax = nrow(X),
-      y.position = max_cases + 2 * bracket_offset,
+      y.position = max_cases + 2.5 * bracket_offset,
       label = paste0(long_window, "-day window"),
       label.size = 3
     ) +
@@ -432,8 +441,9 @@ plot_trajectories <- function(X, short_window, n_init) {
       ),
       guide = "none"
     ) +
-    coord_cartesian(ylim = c(0, max_cases + 3 * bracket_offset)) +
-    labs(x = "Day", y = "Cases")
+    coord_cartesian(ylim = c(0, max_cases + 3.5 * bracket_offset)) +
+    labs(x = "Day", y = "Cases") +
+    theme(axis.title = element_text(size = 16))
 }
 
 #' Plots the metadata of the simulation scenario
@@ -460,7 +470,7 @@ plot_metadata <- function(R_eff, nb_size, magnitude, distribution) {
       } else {
         NA
       },
-      paste0("Magnitude: ", gsub("_.*", "", magnitude))
+      paste0("Magn.: ", gsub("_.*", "", magnitude))
     )
   )
   # Remove the dispersion parameter, when it's not present for the Poisson
@@ -471,6 +481,9 @@ plot_metadata <- function(R_eff, nb_size, magnitude, distribution) {
   ggplot(df_text, aes(x = x, y = y, label = label)) +
     geom_text(hjust = 0, parse = TRUE) +
     coord_cartesian(ylim = c(-3, 3), xlim = c(0.997, 1.02)) +
+    # Must specify the labels as an empty string, otherwise a later call of
+    # theme() will override the labels as default "x" and "y"
+    labs(x = "", y = "")
     theme_void()
 }
 
@@ -493,7 +506,7 @@ compose_coverage_patches <- function(
   plot_panels,
   short_window,
   long_window,
-  panel_widths = c(1, 3, 2)
+  panel_widths = c(0.8, 3, 2)
 ) {
   # We will have as many rows as the simulation scenarios
   n_rows <- length(plot_panels)
@@ -501,6 +514,9 @@ compose_coverage_patches <- function(
   # Set the first row as a ggplot with text only
   p_trajectories <- ggplot() +
     geom_text(aes(x = 1, y = 1, label = "Simulation trajectories"), size = 5) +
+    # Must specify the labels as an empty string, otherwise a later call of
+    # theme() will override the labels as default "x" and "y"
+    labs(x = "", y = "") +
     theme_void()
   p_meta <- plot_spacer()
 
@@ -509,7 +525,8 @@ compose_coverage_patches <- function(
     map(plot_panels, "coverage"),
     short_window,
     long_window
-  )
+  ) +
+    theme(axis.title = element_text(size = 16))
 
   # Glue the plots under each other into vertical strips. `p_coverage` is
   # composed of two columns containing the coverage plots for both estimation
@@ -532,9 +549,7 @@ compose_coverage_patches <- function(
       guides = "collect",
       axes = "collect"
     ) &
-    theme(
-      legend.text = element_text(size = 11)
-    )
+    get_legend_theme()
 
   # Create the final plot
   p_final <- (p_meta | p_trajectories | p_coverage) +
@@ -561,38 +576,39 @@ compose_subplot_by_windows <- function(
   long_window
 ) {
   n_rows <- length(subplot_panels)
-  # Create header row with two column titles using patchwork's + operator
+  # Glue the plots under each other into vertical strips. The patchwork plot is
+  # composed of two columns containing the plots of desired quantities for both
+  # estimation windows in order to allow or collecting the guides and axes.
   p <- ggplot() +
     geom_text(
       aes(x = 1, y = 1, label = paste0(short_window, "-day window")),
       size = 5
     ) +
+    # Must specify the labels as an empty string, otherwise a later call of
+    # theme() will override the labels as default "x" and "y"
+    labs(x = "", y = "") +
     theme_void() +
+    map(subplot_panels, "short") +
     ggplot() +
     geom_text(
       aes(x = 1, y = 1, label = paste0(long_window, "-day window")),
       size = 5
     ) +
-    theme_void()
-
-  # Glue the plots under each other into vertical strips. The patchwork plot is
-  # composed of two columns containing the plots of desired quantities for both
-  # estimation windows in order to allow or collecting the guides and axes.
-  for (k in seq_len(n_rows)) {
-    p <- p + subplot_panels[[k]]$short + subplot_panels[[k]]$long
-  }
-  p <- p +
-    # Collect the guides
+    # Must specify the labels as an empty string, otherwise a later call of
+    # theme() will override the labels as default "x" and "y"
+    labs(x = "", y = "") +
+    theme_void() +
+    map(subplot_panels, "long") +
     plot_layout(
       nrow = n_rows + 1,
+      byrow = FALSE,
       ncol = 2,
       heights = c(1, rep(6, n_rows)),
       guides = "collect",
       axes = "collect"
     ) &
-    theme(
-      legend.text = element_text(size = 11)
-    )
+    get_legend_theme() &
+    theme(axis.title = element_text(size = 16))
   p
 }
 
@@ -630,15 +646,13 @@ compose_dens_patches <- function(
   )
 
   # Compose the panel of the metadata about the parameter values
-  p_meta <- plot_spacer()
-  for (k in seq_len(length(plot_meta_panels))) {
-    p_meta <- p_meta / plot_meta_panels[[k]]
-  }
-  p_meta <- p_meta +
+  p_meta <- plot_spacer() + plot_meta_panels +
     plot_layout(heights = c(1, rep(6, length(plot_meta_panels))))
 
   # Extract the legend and remove it from the plots
-  p_legend <- wrap_elements(ggpubr::get_legend(plot_panels$R_hat[[1]]$short))
+  p_legend <- wrap_elements(
+    ggpubr::get_legend(plot_panels$R_hat[[1]]$short & get_legend_theme())
+  )
   p_R_hat <- wrap_elements(
     (p_meta | p_R_hat) +
       plot_layout(widths = c(2, 6)) &
@@ -654,18 +668,24 @@ compose_dens_patches <- function(
     ggplot() +
     geom_text(
       aes(x = 1, y = 1, label = "Distribution~of~hat(R)"),
-      size = 5.5,
+      size = 6,
       parse = TRUE
     ) +
+    # Must specify the labels as an empty string, otherwise a later call of
+    # theme() will override the labels as default "x" and "y"
+    labs(x = "", y = "") +
     theme_void() +
     plot_layout(widths = c(2, 6))
   p_headline_se_hat <- plot_spacer() +
     ggplot() +
     geom_text(
       aes(x = 1, y = 1, label = "Distribution~of~widehat(se)(hat(R))"),
-      size = 5.5,
+      size = 6,
       parse = TRUE
     ) +
+    # Must specify the labels as an empty string, otherwise a later call of
+    # theme() will override the labels as default "x" and "y"
+    labs(x = "", y = "") +
     theme_void() +
     plot_layout(widths = c(0.25, 6))
 
@@ -677,7 +697,8 @@ compose_dens_patches <- function(
 
   # Combine everything
   p_main <- wrap_elements(
-    (p_headline / p_plot) + plot_layout(heights = c(1, 22))
+    ((p_headline / p_plot) + plot_layout(heights = c(1, 22))) &
+      theme(axis.title = element_text(size = 16))
   ) +
     p_legend +
     plot_layout(widths = c(10, 1))
@@ -714,6 +735,9 @@ compose_overdisp_patches <- function(
       aes(x = 1, y = 1, label = "NegBin-L ground truth"),
       size = 5
     ) +
+    # Must specify the labels as an empty string, otherwise a later call of
+    # theme() will override the labels as default "x" and "y"
+    labs(x = "", y = "") +
     theme_void() +
     plot_panels$NegBin.L_weekday_no +
     plot_layout(
@@ -738,6 +762,7 @@ compose_overdisp_patches <- function(
       aes(x = 1, y = 1, label = "NegBin-Q ground truth"),
       size = 5
     ) +
+    labs(x = "", y = "") +
     theme_void() +
     plot_panels$NegBin.Q_weekday_no +
     plot_layout(
@@ -760,7 +785,8 @@ compose_overdisp_patches <- function(
 
   # Combine everything
   p_main <- wrap_elements(
-    (p_negbin_l | p_negbin_q) + plot_layout(widths = c(8, 8))
+    ((p_negbin_l | p_negbin_q) + plot_layout(widths = c(8, 8))) &
+      theme(axis.title = element_text(size = 16))
   ) +
     p_legend +
     plot_layout(widths = c(10, 1))

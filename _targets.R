@@ -50,7 +50,7 @@ global_params <- list(
 )
 
 # Size of the final plot
-plot_size <- list(width = 14, height = 14.5)
+plot_size <- list(width = 11, height = 11.4)
 
 # If we plot only half of the scenarios, by how much do we divide the height?
 plot_halving_coeff <- 1.98
@@ -266,6 +266,8 @@ list(
       {
         # Create the coverage plot for a subset of scenarios. We will use only
         # NegBin-L and NegBin-Q versions.
+        # CURRENTLY, THIS PLOT NEEDS ADJUSTMENS REGARDING THE TEXT SIZES.
+        # NEEDS TO BE RESOLVED BEFORE GENERATING THE PLOTS FOR THE POSTER.
         generate_poster_figure <- distribution == "NegBin-Q" ||
           (distribution == "NegBin-L" && weekday_effect == "weekday_no")
         if (generate_poster_figure) {
