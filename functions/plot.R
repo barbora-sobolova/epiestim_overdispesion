@@ -483,8 +483,8 @@ plot_metadata <- function(R_eff, nb_size, magnitude, distribution) {
     coord_cartesian(ylim = c(-3, 3), xlim = c(0.997, 1.02)) +
     # Must specify the labels as an empty string, otherwise a later call of
     # theme() will override the labels as default "x" and "y"
-    labs(x = "", y = "")
-  theme_void()
+    labs(x = "", y = "") +
+    theme_void()
 }
 
 #' Compose coverage plot patches into the final plot
@@ -511,14 +511,18 @@ compose_coverage_patches <- function(
   # We will have as many rows as the simulation scenarios
   n_rows <- length(plot_panels)
 
-  # Set the first row as a ggplot with text only
+  # Set the first row as a ggplot with text only and glue the plots under each
+  # other into vertical strips.
   p_trajectories <- ggplot() +
     geom_text(aes(x = 1, y = 1, label = "Simulation trajectories"), size = 5) +
     # Must specify the labels as an empty string, otherwise a later call of
     # theme() will override the labels as default "x" and "y"
     labs(x = "", y = "") +
-    theme_void()
-  p_meta <- plot_spacer()
+    theme_void() +
+    map(plot_panels, "trajectories")
+  p_meta <- plot_spacer() +
+    map(plot_panels, "meta")
+    plot_layout(heights = c(1, rep(6, n_rows)))
 
   # Compose the right panel corresponding to the empirical vs. nominal coverage
   p_coverage <- compose_subplot_by_windows(
@@ -527,14 +531,6 @@ compose_coverage_patches <- function(
     long_window
   ) +
     theme(axis.title = element_text(size = 16))
-
-  # Glue the plots under each other into vertical strips. `p_coverage` is
-  # composed of two columns containing the coverage plots for both estimation
-  # windows in order to allow or collecting the guides and axes.
-  for (k in seq_len(n_rows)) {
-    p_trajectories <- p_trajectories / plot_panels[[k]]$trajectories
-    p_meta <- p_meta / plot_panels[[k]]$meta
-  }
 
   # Adjust the layout of the vertical strips
   p_trajectories <- p_trajectories +
