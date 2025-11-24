@@ -1,5 +1,5 @@
 #' Returns the theme of the composite plot legend
-#' 
+#'
 #' @description This macro defines the font sizes used in the legend of the
 #'   composite plots.
 #' @return a ggplot theme
@@ -484,7 +484,7 @@ plot_metadata <- function(R_eff, nb_size, magnitude, distribution) {
     # Must specify the labels as an empty string, otherwise a later call of
     # theme() will override the labels as default "x" and "y"
     labs(x = "", y = "")
-    theme_void()
+  theme_void()
 }
 
 #' Compose coverage plot patches into the final plot
