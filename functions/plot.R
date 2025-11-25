@@ -640,7 +640,7 @@ compose_dens_patches <- function(
 
   # Compose the panel of the metadata about the parameter values
   p_meta <- plot_spacer() + plot_meta_panels +
-    plot_layout(heights = c(1, rep(6, length(plot_meta_panels))))
+    plot_layout(heights = get_header_proportions(length(plot_meta_panels)))
 
   # Extract the legend and remove it from the plots
   p_legend <- wrap_elements(
@@ -653,7 +653,7 @@ compose_dens_patches <- function(
   )
   p_se_hat <- wrap_elements(
     (plot_spacer() | p_se_hat) +
-      plot_layout(widths = c(0.25, 6)) & theme(legend.position = "none")
+      plot_layout(widths = c(0.2, 6)) & theme(legend.position = "none")
   )
 
   # Create the upper titles
@@ -720,7 +720,7 @@ compose_overdisp_patches <- function(
     ggplot() +
     geom_text(
       aes(x = 1, y = 1, label = "NegBin-L ground truth"),
-      size = 4.8
+      size = 4.6
     ) +
     theme_void() +
     plot_panels$NegBin.L_weekday_no +
@@ -742,7 +742,7 @@ compose_overdisp_patches <- function(
     ggplot() +
     geom_text(
       aes(x = 1, y = 1, label = "NegBin-Q ground truth"),
-      size = 4.8
+      size = 4.6
     ) +
     theme_void() +
     plot_panels$NegBin.Q_weekday_no +
