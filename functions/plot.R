@@ -1,3 +1,12 @@
+#' Returns the header-to-plot proportions
+#'
+#' @description This macro defines the vertical proportions of a plot header and
+#'   a plot body used by `patchwork` to compose plots into a vertical strip.
+#' @param n_rows integer, number of plots in the vertical strip.
+#' @return a vector of \code{n_rows + 1} elements defining the heights of
+#'   patchwork patches.
+get_header_proportions <- function(n_rows) c(1, rep(5.9, n_rows))
+
 #' Returns the theme of the composite plot legend
 #'
 #' @description This macro defines the font sizes used in the legend of the
@@ -126,7 +135,8 @@ plot_dens <- function(
         y = "density"
       ) +
       # A couple of values might get clipped.
-      coord_cartesian(xlim = limits_x$R_hat)
+      coord_cartesian(xlim = limits_x$R_hat) +
+      theme(axis.title = element_text(size = 16))
 
     # Plot the standard errors of the R_eff estimates
     p_se_hat[[k]] <- ggplot(df_R_hat_split[[k]], aes(x = se, color = model)) +
@@ -151,7 +161,8 @@ plot_dens <- function(
         y = "density"
       ) +
       # A couple of values might get clipped.
-      coord_cartesian(xlim = limits_x$se_hat)
+      coord_cartesian(xlim = limits_x$se_hat) +
+      theme(axis.title = element_text(size = 16))
   }
 
   # Plot the point estimates of the overdispersion parameter. We use 2 facets
@@ -248,7 +259,9 @@ plot_dens <- function(
         y = "density"
       ) +
       # A couple of values might get clipped.
-      coord_cartesian(xlim = limits_x$overdisp_hat)
+      coord_cartesian(xlim = limits_x$overdisp_hat) +
+      theme(axis.title = element_text(size = 16)) +
+      get_legend_theme()
   }
 
   # Return the list
@@ -363,7 +376,8 @@ plot_coverage <- function(
         color = "Model",
         shape = NULL,
         linetype = NULL
-      )
+      ) +
+      theme(axis.title = element_text(size = 16))
   }
   p_coverage
 }
@@ -481,9 +495,6 @@ plot_metadata <- function(R_eff, nb_size, magnitude, distribution) {
   ggplot(df_text, aes(x = x, y = y, label = label)) +
     geom_text(hjust = 0, parse = TRUE) +
     coord_cartesian(ylim = c(-3, 3), xlim = c(0.997, 1.02)) +
-    # Must specify the labels as an empty string, otherwise a later call of
-    # theme() will override the labels as default "x" and "y"
-    labs(x = "", y = "") +
     theme_void()
 }
 
@@ -515,30 +526,26 @@ compose_coverage_patches <- function(
   # other into vertical strips.
   p_trajectories <- ggplot() +
     geom_text(aes(x = 1, y = 1, label = "Simulation trajectories"), size = 5) +
-    # Must specify the labels as an empty string, otherwise a later call of
-    # theme() will override the labels as default "x" and "y"
-    labs(x = "", y = "") +
     theme_void() +
     map(plot_panels, "trajectories") +
-    plot_layout(heights = c(1, rep(6, n_rows)), axes = "collect")
+    plot_layout(heights = get_header_proportions(n_rows), axes = "collect")
   p_meta <- plot_spacer() +
     map(plot_panels, "meta") +
-    plot_layout(heights = c(1, rep(6, n_rows)))
+    plot_layout(heights = get_header_proportions(n_rows))
 
   # Compose the right panel corresponding to the empirical vs. nominal coverage
   p_coverage <- compose_subplot_by_windows(
     map(plot_panels, "coverage"),
     short_window,
     long_window
-  ) +
-    theme(axis.title = element_text(size = 16))
+  )
 
   # Collect the guides
   p_coverage <- p_coverage +
     plot_layout(
       nrow = n_rows + 1,
       ncol = 2,
-      heights = c(1, rep(6, n_rows)),
+      heights = get_header_proportions(n_rows),
       guides = "collect",
       axes = "collect"
     ) &
@@ -575,33 +582,26 @@ compose_subplot_by_windows <- function(
   p <- ggplot() +
     geom_text(
       aes(x = 1, y = 1, label = paste0(short_window, "-day window")),
-      size = 5
+      size = 4.8
     ) +
-    # Must specify the labels as an empty string, otherwise a later call of
-    # theme() will override the labels as default "x" and "y"
-    labs(x = "", y = "") +
     theme_void() +
     map(subplot_panels, "short") +
     ggplot() +
     geom_text(
       aes(x = 1, y = 1, label = paste0(long_window, "-day window")),
-      size = 5
+      size = 4.8
     ) +
-    # Must specify the labels as an empty string, otherwise a later call of
-    # theme() will override the labels as default "x" and "y"
-    labs(x = "", y = "") +
     theme_void() +
     map(subplot_panels, "long") +
     plot_layout(
       nrow = n_rows + 1,
       byrow = FALSE,
       ncol = 2,
-      heights = c(1, rep(6, n_rows)),
+      heights = get_header_proportions(n_rows),
       guides = "collect",
       axes = "collect"
     ) &
-    get_legend_theme() &
-    theme(axis.title = element_text(size = 16))
+    get_legend_theme()
   p
 }
 
@@ -661,24 +661,19 @@ compose_dens_patches <- function(
     ggplot() +
     geom_text(
       aes(x = 1, y = 1, label = "Distribution~of~hat(R)"),
-      size = 6,
+      size = 5.5,
       parse = TRUE
     ) +
-    # Must specify the labels as an empty string, otherwise a later call of
-    # theme() will override the labels as default "x" and "y"
-    labs(x = "", y = "") +
     theme_void() +
     plot_layout(widths = c(2, 6))
   p_headline_se_hat <- plot_spacer() +
     ggplot() +
     geom_text(
       aes(x = 1, y = 1, label = "Distribution~of~widehat(se)(hat(R))"),
-      size = 6,
+      hjust = 0.34,
+      size = 5.5,
       parse = TRUE
     ) +
-    # Must specify the labels as an empty string, otherwise a later call of
-    # theme() will override the labels as default "x" and "y"
-    labs(x = "", y = "") +
     theme_void() +
     plot_layout(widths = c(0.25, 6))
 
@@ -690,8 +685,7 @@ compose_dens_patches <- function(
 
   # Combine everything
   p_main <- wrap_elements(
-    ((p_headline / p_plot) + plot_layout(heights = c(1, 22))) &
-      theme(axis.title = element_text(size = 16))
+    ((p_headline / p_plot) + plot_layout(heights = c(1, 22)))
   ) +
     p_legend +
     plot_layout(widths = c(10, 1))
@@ -726,26 +720,21 @@ compose_overdisp_patches <- function(
     ggplot() +
     geom_text(
       aes(x = 1, y = 1, label = "NegBin-L ground truth"),
-      size = 5
+      size = 4.8
     ) +
-    # Must specify the labels as an empty string, otherwise a later call of
-    # theme() will override the labels as default "x" and "y"
-    labs(x = "", y = "") +
     theme_void() +
     plot_panels$NegBin.L_weekday_no +
     plot_layout(
       nrow = n_rows + 1,
       ncol = 2,
       byrow = FALSE,
-      heights = c(1, rep(6, n_rows)),
+      heights = get_header_proportions(n_rows),
       widths = c(2, 6),
       guides = "collect",
       axes = "collect_x",
       axis_titles = "collect"
     ) &
-    theme(
-      legend.position = "none"
-    )
+    theme(legend.position = "none")
 
   p_negbin_q <- plot_spacer() +
     plot_meta_panels$NegBin.Q +
@@ -753,16 +742,15 @@ compose_overdisp_patches <- function(
     ggplot() +
     geom_text(
       aes(x = 1, y = 1, label = "NegBin-Q ground truth"),
-      size = 5
+      size = 4.8
     ) +
-    labs(x = "", y = "") +
     theme_void() +
     plot_panels$NegBin.Q_weekday_no +
     plot_layout(
       nrow = n_rows + 1,
       ncol = 2,
       byrow = FALSE,
-      heights = c(1, rep(6, n_rows)),
+      heights = get_header_proportions(n_rows),
       widths = c(2, 6),
       guides = "collect",
       axes = "collect"
@@ -778,10 +766,9 @@ compose_overdisp_patches <- function(
 
   # Combine everything
   p_main <- wrap_elements(
-    ((p_negbin_l | p_negbin_q) + plot_layout(widths = c(8, 8))) &
-      theme(axis.title = element_text(size = 16))
+    ((p_negbin_l | p_negbin_q) + plot_layout(widths = c(8, 8)))
   ) +
     p_legend +
-    plot_layout(widths = c(10, 1))
+    plot_layout(widths = c(6, 1))
   p_main
 }

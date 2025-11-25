@@ -50,10 +50,10 @@ global_params <- list(
 )
 
 # Size of the final plot
-plot_size <- list(width = 11, height = 11.4)
+plot_size <- list(width = 11, height = 11.7)
 
 # If we plot only half of the scenarios, by how much do we divide the height?
-plot_halving_coeff <- 1.98
+plot_halving_coeff <- 1.75
 
 # Scenario blocks for the static branching:
 # NegBin-L
